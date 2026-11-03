@@ -1,9 +1,9 @@
 import { stays } from './stays.js';
+import { account } from './account.js';
 
 (() => {
   'use strict';
 
-  const storageKey = 'aori:favorites:v1';
   const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
   const form = document.querySelector('#search-form');
   const grid = document.querySelector('#stays-grid');
@@ -24,14 +24,6 @@ import { stays } from './stays.js';
   const state = { destination: '', filter: 'all', guests: initialGuests(), favoritesOnly: false };
   const validIds = new Set(stays.map((stay) => stay.id));
   let favorites = new Set();
-
-  function readFavorites() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      favorites = new Set(Array.isArray(saved) ? saved.filter((id) => validIds.has(id)) : []);
-    } catch { /* Browsing and favorites still work when storage is unavailable. */ }
-  }
-  readFavorites();
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -127,6 +119,7 @@ import { stays } from './stays.js';
     const selected = favorites.has(stay.id);
     const button = element('button', `favorite-button${selected ? ' is-favorite' : ''}`);
     button.type = 'button';
+    button.disabled = account.isPending(stay.id);
     button.dataset.favorite = stay.id;
     button.setAttribute('aria-pressed', String(selected));
     button.setAttribute('aria-label', `${selected ? 'Remover' : 'Salvar'} ${stay.name} ${selected ? 'dos' : 'nos'} favoritos`);
@@ -194,18 +187,15 @@ import { stays } from './stays.js';
     render();
   }
 
-  function toggleFavorite(id) {
+  async function toggleFavorite(id) {
     if (!validIds.has(id)) return;
-    readFavorites();
-    const wasSelected = favorites.has(id);
-    if (wasSelected) favorites.delete(id); else favorites.add(id);
-    let saved = true;
-    try { localStorage.setItem(storageKey, JSON.stringify([...favorites])); } catch { saved = false; }
-    const stay = stays.find((item) => item.id === id);
-    say(`${stay.name} ${wasSelected ? 'removido dos' : 'salvo nos'} favoritos.${saved ? '' : ' Os favoritos ficarão disponíveis apenas nesta visita.'}`);
-    render();
-    const nextFocus = grid.querySelector(`[data-favorite="${id}"]`) || (state.favoritesOnly ? grid.querySelector('.favorite-button') || favoriteToggle : null);
-    nextFocus?.focus({ preventScroll: true });
+    try {
+      if (!await account.toggleFavorite(id)) return;
+      const stay = stays.find(item => item.id === id);
+      say(`${stay.name} ${favorites.has(id) ? 'salvo nos' : 'removido dos'} favoritos da sua conta.`);
+      const nextFocus = grid.querySelector(`[data-favorite="${id}"]`) || (state.favoritesOnly ? grid.querySelector('.favorite-button') || favoriteToggle : null);
+      nextFocus?.focus({ preventScroll: true });
+    } catch (error) { say(error.message, true); }
   }
 
   function stayPageUrl(stay) {
@@ -315,19 +305,15 @@ import { stays } from './stays.js';
     });
   });
 
-  favoriteToggle?.addEventListener('click', () => {
-    state.favoritesOnly = !state.favoritesOnly;
-    render();
-    const count = matchingStays().length;
-    say(state.favoritesOnly ? `${count} ${count === 1 ? 'lugar nos seus favoritos' : 'lugares nos seus favoritos'} com estes filtros.` : 'Todos os lugares da seleção demonstrativa.');
-    scrollToResults();
-  });
-
-  window.addEventListener('storage', (event) => {
-    if (event.key === storageKey || event.key === null) {
-      readFavorites();
+  favoriteToggle?.addEventListener('click', async () => {
+    try {
+      if (!await account.ensureUser('Entre na sua conta para ver os seus lugares favoritos.')) return;
+      state.favoritesOnly = !state.favoritesOnly;
       render();
-    }
+      const count = matchingStays().length;
+      say(state.favoritesOnly ? `${count} ${count === 1 ? 'lugar nos seus favoritos' : 'lugares nos seus favoritos'} com estes filtros.` : 'Todos os lugares da seleção demonstrativa.');
+      scrollToResults();
+    } catch (error) { say(error.message, true); }
   });
 
   grid.addEventListener('click', (event) => {
@@ -374,5 +360,9 @@ import { stays } from './stays.js';
 
   updateDateLimits();
   say('Seleção demonstrativa: nomes, valores e disponibilidade são exemplos para conhecer a Aori.');
-  render();
+  account.subscribe(() => {
+    favorites = account.favorites;
+    if (!account.user) state.favoritesOnly = false;
+    render();
+  });
 })();

@@ -1,4 +1,5 @@
 import { stays } from './stays.js';
+import { account } from './account.js';
 
 const params = new URLSearchParams(window.location.search);
 const stay = stays.find(item => item.id === params.get('id'));
@@ -8,7 +9,6 @@ const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
 const dayText = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const monthText = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
-const storageKey = 'aori:favorites:v1';
 
 function make(tag, className, text) {
   const node = document.createElement(tag);
@@ -98,30 +98,24 @@ if (!stay) {
 
   const favoriteButton = document.querySelector('#property-save');
   const favoriteLabel = document.querySelector('#property-save-label');
-  const validIds = new Set(stays.map(item => item.id));
-  let favorites = new Set();
-  function readFavorites() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      favorites = new Set(Array.isArray(saved) ? saved.filter(id => validIds.has(id)) : []);
-    } catch { /* Keep the in-memory selection if local storage is unavailable. */ }
-  }
-  function renderFavorite() {
-    const saved = favorites.has(stay.id);
+  const favoriteStatus = make('p', 'account-save-message');
+  favoriteStatus.setAttribute('role', 'status');
+  favoriteStatus.setAttribute('aria-live', 'polite');
+  document.querySelector('.property-title-row').after(favoriteStatus);
+  account.subscribe(() => {
+    const saved = account.favorites.has(stay.id);
+    favoriteButton.disabled = account.isPending(stay.id);
     favoriteButton.setAttribute('aria-pressed', String(saved));
     favoriteButton.setAttribute('aria-label', `${saved ? 'Remover' : 'Salvar'} ${stay.name} ${saved ? 'dos' : 'nos'} favoritos`);
     favoriteLabel.textContent = saved ? 'Lugar salvo' : 'Salvar lugar';
-  }
-  readFavorites();
-  renderFavorite();
-  favoriteButton.addEventListener('click', () => {
-    readFavorites();
-    if (favorites.has(stay.id)) favorites.delete(stay.id); else favorites.add(stay.id);
-    try { localStorage.setItem(storageKey, JSON.stringify([...favorites])); } catch { /* Favorites still work for this visit. */ }
-    renderFavorite();
   });
-  window.addEventListener('storage', event => {
-    if (event.key === storageKey) { readFavorites(); renderFavorite(); }
+  favoriteButton.addEventListener('click', async () => {
+    favoriteStatus.textContent = '';
+    try {
+      if (await account.toggleFavorite(stay.id)) {
+        favoriteStatus.textContent = account.favorites.has(stay.id) ? 'Lugar salvo nos favoritos da sua conta.' : 'Lugar removido dos seus favoritos.';
+      }
+    } catch (error) { favoriteStatus.textContent = error.message; }
   });
 
   const form = document.querySelector('#property-booking-form');

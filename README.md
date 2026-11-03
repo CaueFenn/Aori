@@ -5,10 +5,11 @@
 Primeira prévia local da Aori, feita em HTML, CSS e JavaScript, sem dependências
 de execução adicionais ao Node.js. Inclui apresentação da marca, catálogo
 demonstrativo de hospedagens em Santa Catarina, busca, filtros, favoritos,
-detalhes de cada lugar, menu mobile e perguntas frequentes.
+detalhes de cada lugar, menu mobile e perguntas frequentes. Agora também inclui
+cadastro/login de clientes e favoritos persistidos em SQLite por conta.
 
-O desenvolvimento está em `C:\a3\code`. Esta versão foi aprovada pelo usuário
-para envio ao GitHub. A aplicação continua sendo uma prévia local, com catálogo
+O desenvolvimento está em `C:\a3\code`. A versão anterior foi enviada ao GitHub;
+a integração de contas e banco aguarda nova revisão. A aplicação continua sendo uma prévia local, com catálogo
 fictício e simulação de datas, sem reservas ou pagamentos reais.
 
 O [planejamento acadêmico original](docs/planejamento-academico.md), que já
@@ -18,7 +19,7 @@ Ele descreve o escopo acadêmico planejado; a implementação atual corresponde
 
 ## Abrir a prévia local
 
-Requisito: Node.js 20 ou superior. No PowerShell:
+Requisito: Node.js 24 ou superior (SQLite e criptografia nativos). No PowerShell:
 
 ```powershell
 Set-Location -LiteralPath 'C:\a3\code'
@@ -33,7 +34,10 @@ Não é necessário instalar pacotes nem executar build.
 ## Organização
 
 - `C:\a3\code\public`: HTML, CSS, JavaScript, manifest e assets do site.
-- `C:\a3\code\scripts\serve.mjs`: servidor estático da prévia local.
+- `scripts/serve.mjs`: inicia a prévia local; `server.mjs` atende arquivos e API;
+  `database.mjs` prepara o SQLite e a autenticação.
+- `database/schema.sql`: três tabelas obrigatórias e quatro tabelas de apoio.
+- `public/account.js` e `account.css`: acesso à conta e integração dos favoritos.
 - `public/stays.js`: catálogo demonstrativo compartilhado pela página inicial
   e pela página completa de cada estadia.
 - `public/estadia.html`, `public/estadia.css` e `public/estadia.js`: página
@@ -163,12 +167,31 @@ incluindo URLs, autores, licenças, dimensões, tamanhos e hashes SHA-256.
 ## Escopo da demonstração
 
 Nomes, valores e descrições das acomodações são conteúdo demonstrativo para
-avaliação da experiência. A prévia não possui backend de reservas, pagamentos,
-autenticação ou catálogo conectado a disponibilidade real.
+avaliação da experiência. Cadastro, login e favoritos por cliente estão ligados
+ao banco SQLite. A prévia ainda não possui backend de reservas ou pagamentos,
+nem catálogo conectado a disponibilidade real.
 
-A busca e os filtros operam sobre os dados locais do JavaScript. Os favoritos
-ficam apenas no navegador, por meio de `localStorage`; não há sincronização
-de conta ou envio desses favoritos a um serviço.
+A busca e os filtros operam sobre o catálogo demonstrativo do JavaScript.
+O servidor sincroniza as seis hospedagens com o banco ao iniciar. Os favoritos
+agora pertencem ao cliente autenticado e ficam no SQLite. O navegador conserva
+apenas um cookie de sessão HttpOnly; um sinal sem dados pessoais sincroniza as
+abas. Favoritos antigos do armazenamento local não são importados para contas.
+
+O cadastro usa nome, CPF válido, telefone com DDD, e-mail e senha de 10 a 128
+caracteres. O login usa e-mail e senha. O coração pede autenticação se necessário
+e continua o salvamento após o login. Sair limpa a lista visível, sem apagar
+os favoritos persistidos da conta. A descrição do banco e suas relações está
+em [database/README.md](database/README.md).
+
+O servidor cria/atualiza `database/aori.sqlite3` de forma aditiva, sem remover
+as três tabelas iniciais. O arquivo não é enviado ao GitHub. Para usar um banco
+de teste separado, defina `AORI_DATABASE_PATH`. Testes automatizados usam bancos
+temporários: `node --test tests/accounts.test.mjs` (ou `npm test`).
+
+O serviço atende somente em loopback HTTP. Publicação com acesso externo exige
+configuração própria de HTTPS, cookies Secure e operação do banco. Cadastro de
+funcionários, gestão de pagamentos, recuperação de senha e reservas efetivas
+não fazem parte desta integração de favoritos.
 
 Todas as seis estadias fictícias estão em Santa Catarina: Urubici e São Joaquim
 (serra), Bombinhas e Praia do Rosa/Imbituba (litoral), Rancho Queimado e Alfredo
@@ -182,6 +205,29 @@ link. O resumo calcula o número de noites e o total ilustrativo, sem efetuar
 reservas ou pagamentos e sem consultar disponibilidade real.
 
 ## Verificações
+
+A integração atual de contas e favoritos possui oito testes automatizados em
+`tests/accounts.test.mjs`, executados com `node --test tests/accounts.test.mjs`.
+Na última execução, os oito passaram, sem falhas.
+Os sete cenários iniciais verificam estrutura obrigatória, cadastro e hashes de
+senha, cookie de sessão, isolamento e persistência de favoritos por conta,
+login/logout, validação de dados e proteção da API e dos arquivos internos.
+O oitavo cenário parte de um banco com dados sintéticos em Clientes, Pagamentos
+e Funcionários: confirma que a migração adiciona as tabelas de apoio sem alterar
+as linhas, IDs ou hashes existentes, inclusive após reiniciar o servidor.
+Os testes usam arquivos temporários próprios, sem inserir dados no banco de uso
+do site.
+
+Na conferência desta integração, os 36 arquivos públicos responderam com HTTP
+200. Cadastro, login, troca entre duas contas, persistência após recarregar,
+remoção pela página da estadia e sincronização entre abas foram conferidos no
+navegador usando um banco de teste separado. Não foram observados erros de
+console. A captura de revisão está em `.qa/accounts-review.jpg`.
+Antes de atualizar o banco local, foi criada uma cópia em `.qa/`; a migração
+preservou as contagens das três tabelas originais e passou no `integrity_check`.
+
+As verificações abaixo registram o histórico da prévia visual e da atualização
+para Santa Catarina, anteriores à integração de autenticação:
 
 - A nova conferência dos 37 hashes documentados dos materiais originais não
   encontrou divergências. Os originais permanecem preservados.
