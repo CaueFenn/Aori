@@ -1,4 +1,3 @@
--- SQLite. IDs de reserva serão vinculados quando a tabela Reservas existir.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "Clientes" (
