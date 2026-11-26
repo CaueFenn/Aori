@@ -319,7 +319,7 @@ import { account } from './account.js';
   grid.addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (!button) return;
-    if (button.hasAttribute('data-favorite')) toggleFavorite(button.dataset.favorite);
+    if (button.hasAttribute('data-favorite')) void toggleFavorite(button.dataset.favorite);
     else if (button.hasAttribute('data-open-stay')) openStay(button.dataset.openStay);
     else if (button.hasAttribute('data-reset-filters')) resetFilters();
   });

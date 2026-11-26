@@ -9,7 +9,24 @@ const root=fileURLToPath(new URL('../public/',import.meta.url));
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.ttf':'font/ttf','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
 const failure=(status,message)=>Object.assign(new Error(message),{status});
 const clean=(value,max=200)=>typeof value==='string'?value.trim().slice(0,max+1):'';
-const validEmail=email=>email.length<=254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validEmail = email => {
+  if (email.length > 254 || /\s/.test(email)) {
+    return false;
+  }
+
+  const at = email.indexOf('@');
+
+  if (at < 1 || at !== email.lastIndexOf('@')) {
+    return false;
+  }
+
+  const domain = email.slice(at + 1);
+  const dot = domain.lastIndexOf('.');
+
+  return dot > 0 && dot < domain.length - 1;
+};
+
 
 function validReservationDate(value) {
   if (typeof value !== 'string' ||
