@@ -153,10 +153,50 @@ O projeto contempla as etapas de planejamento, modelagem de banco de dados, defi
 
 ## Implementação disponível
 
-O conteúdo acima descreve o planejamento acadêmico. A versão implementada inclui catálogo demonstrativo de seis estadias em Santa Catarina, filtros, página completa da estadia com simulação de datas, cadastro/login e favoritos persistidos em SQLite por cliente. Reservas efetivas, histórico de reservas e gestão hoteleira permanecem planejados.
+A versão atual do Aori inclui um catálogo demonstrativo com seis hospedagens em Santa Catarina, filtros de busca, página de detalhes das estadias, cadastro e login de clientes e favoritos persistidos em SQLite.
 
-Para executar: Node.js 24 ou superior, `node scripts/serve.mjs` e abra [localhost:4173](http://localhost:4173/). Para testar: `node --test tests/accounts.test.mjs` (oito testes aprovados).
+Também foi implementado o **sistema de reservas simuladas**, permitindo:
 
-O banco atual preserva Clientes, Pagamentos e Funcionários e adiciona Contas_Clientes, Sessoes_Clientes, Hospedagens e Favoritos. Quartos e Reservas acima pertencem ao planejamento. O arquivo SQLite e dados de clientes não são versionados.
+- Registrar reservas para clientes autenticados.
+- Validar datas de entrada e saída e quantidade de hóspedes.
+- Impedir reservas conflitantes para a mesma hospedagem.
+- Consultar as reservas vinculadas à conta do cliente.
+- Persistir os registros no banco SQLite, sem movimentação financeira.
 
-Consulte a [documentação da implementação e dos materiais incorporados](docs/implementacao-local.md) e a [estrutura do banco e API](database/README.md).
+### Como executar
+
+Requer Node.js 24 ou superior.
+
+```bash
+npm ci
+npm start
+```
+
+Acesse http://localhost:4173/.
+
+### Testes e qualidade
+
+Para executar os testes automatizados:
+
+```bash
+npm test
+```
+
+Para verificar a sintaxe:
+
+```bash
+npm run check
+```
+
+**Resultados da verificação:**
+
+- 33 testes automatizados aprovados.
+- 90,64% de cobertura de linhas, superando a meta mínima de 75%.
+- Integração contínua configurada com GitHub Actions.
+- Análise estática com SonarQube Cloud e Quality Gate aprovado na branch `feat/reservas-simuladas`.
+
+O banco preserva as tabelas originais `Clientes`, `Pagamentos` e `Funcionários`, acrescentando as estruturas necessárias para autenticação, hospedagens, favoritos e reservas simuladas.
+
+Consulte a [documentação da implementação](docs/implementacao-local.md) e a [estrutura do banco e API](database/README.md).
+
+**Referências:** [Issue #1](https://github.com/DudaAlvess/Aori/issues/1) · [Pull Request #2](https://github.com/DudaAlvess/Aori/pull/2).
