@@ -304,8 +304,25 @@ function mountHeader() {
   });
 }
 
+
 mountHeader();
-channel?.addEventListener('message', () => refresh());
-window.addEventListener('storage', event => { if (event.key === signalKey || event.key === null) refresh(); });
-window.addEventListener('focus', () => refresh());
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+channel?.addEventListener('message', () => {
+  void refresh();
+});
+
+window.addEventListener('storage', event => {
+  if (event.key === signalKey || event.key === null) {
+    void refresh();
+  }
+});
+
+window.addEventListener('focus', () => {
+  void refresh();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    void refresh();
+  }
+});
