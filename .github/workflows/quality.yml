@@ -42,7 +42,7 @@ jobs:
 
       - name: Executar testes e gerar cobertura
         run: |
-          npx --yes c8@12.0.0 \
+          ./node_modules/.bin/c8 \
             --all \
             --include='public/**/*.js' \
             --include='scripts/**/*.mjs' \
